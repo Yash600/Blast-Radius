@@ -221,12 +221,15 @@ function TopFilesCard({ analyses }: { analyses: Analysis[] }) {
 }
 
 /* ── PR list row ── */
-function PRCard({ analysis, onClick }: { analysis: Analysis; onClick: () => void }) {
+function PRCard({ analysis, onClick, onDelete }: { analysis: Analysis; onClick: () => void; onDelete: (e: React.MouseEvent) => void }) {
   const dot = SEV_DOT[analysis.severity] || "#999";
+  const [hovered, setHovered] = useState(false);
   return (
-    <div onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 4px rgba(0,0,0,0.05)", cursor: "pointer", transition: "all 0.15s" }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 20px rgba(0,0,0,0.1)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 4px rgba(0,0,0,0.05)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 18px", background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.06)", boxShadow: hovered ? "0 6px 20px rgba(0,0,0,0.1)" : "0 1px 4px rgba(0,0,0,0.05)", transform: hovered ? "translateY(-1px)" : "translateY(0)", cursor: "pointer", transition: "all 0.15s", position: "relative" }}
     >
       <div style={{ width: 9, height: 9, borderRadius: "50%", background: dot, boxShadow: `0 0 6px ${dot}88`, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -242,9 +245,29 @@ function PRCard({ analysis, onClick }: { analysis: Analysis; onClick: () => void
           {analysis.semantic_change?.summary || ""}
         </p>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-        <SeverityBadge severity={analysis.severity} />
-        <span style={{ fontSize: 10, color: "#ccc" }}>{analysis.impact_count} impact{analysis.impact_count !== 1 ? "s" : ""}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+          <SeverityBadge severity={analysis.severity} />
+          <span style={{ fontSize: 10, color: "#ccc" }}>{analysis.impact_count} impact{analysis.impact_count !== 1 ? "s" : ""}</span>
+        </div>
+        {/* Trash icon — visible on hover */}
+        <button
+          onClick={onDelete}
+          title="Delete analysis"
+          style={{
+            opacity: hovered ? 1 : 0,
+            transition: "opacity 0.15s",
+            background: "rgba(229,62,62,0.07)",
+            border: "1px solid rgba(229,62,62,0.18)",
+            color: "#e53e3e",
+            borderRadius: 8,
+            width: 30, height: 30,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", fontSize: 13, flexShrink: 0,
+          }}
+        >
+          🗑
+        </button>
       </div>
     </div>
   );
@@ -406,6 +429,26 @@ export default function Home() {
       .catch(() => setLoading(false));
   }
 
+  async function handleDeleteOne(e: React.MouseEvent, id: number) {
+    e.stopPropagation();
+    if (!confirm("Delete this analysis?")) return;
+    await fetch(`${API}/api/analyses/${id}`, { method: "DELETE" });
+    fetchAnalyses();
+  }
+
+  async function handleClearRepo(repo: string) {
+    const label = repo === "ALL" ? "ALL analyses" : `all analyses for ${repo}`;
+    if (!confirm(`Clear ${label}? This cannot be undone.`)) return;
+    if (repo === "ALL") {
+      await fetch(`${API}/api/analyses`, { method: "DELETE" });
+    } else {
+      const [owner, name] = repo.split("/");
+      await fetch(`${API}/api/analyses/repo/${owner}/${name}`, { method: "DELETE" });
+      setSelectedRepo("ALL");
+    }
+    fetchAnalyses();
+  }
+
   useEffect(() => {
     fetchAnalyses();
     const id = setInterval(fetchAnalyses, 5000);
@@ -443,36 +486,59 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Repo tabs — only show when multiple repos exist */}
-      {repos.length > 1 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11, color: "#aaa", fontWeight: 600, marginRight: 4 }}>Repo</span>
-          {["ALL", ...repos].map(r => {
-            const active = selectedRepo === r;
-            const count  = r === "ALL" ? analyses.length : analyses.filter(a => a.repo_name === r).length;
-            return (
-              <button key={r} onClick={() => { setSelectedRepo(r); setFilter("ALL"); }} style={{
-                display: "flex", alignItems: "center", gap: 6,
-                fontSize: 12, fontWeight: active ? 700 : 500,
-                padding: "6px 14px", borderRadius: 99, cursor: "pointer",
-                border: "1px solid rgba(0,0,0,0.1)",
-                background: active ? "#1c1c1e" : "rgba(0,0,0,0.04)",
-                color: active ? "#fff" : "#777",
-                transition: "all 0.15s",
-                boxShadow: active ? "0 2px 8px rgba(0,0,0,0.18)" : "none",
-              }}>
-                {r === "ALL" ? "All Repos" : r.split("/")[1]}
-                <span style={{
-                  fontSize: 10, fontWeight: 700,
-                  background: active ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)",
-                  color: active ? "#fff" : "#aaa",
-                  padding: "1px 6px", borderRadius: 99,
+      {/* Repo tabs — only show when repos exist */}
+      {repos.length > 0 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 11, color: "#aaa", fontWeight: 600, marginRight: 4 }}>Repo</span>
+            {["ALL", ...repos].map(r => {
+              const active = selectedRepo === r;
+              const count  = r === "ALL" ? analyses.length : analyses.filter(a => a.repo_name === r).length;
+              return (
+                <button key={r} onClick={() => { setSelectedRepo(r); setFilter("ALL"); }} style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  fontSize: 12, fontWeight: active ? 700 : 500,
+                  padding: "6px 14px", borderRadius: 99, cursor: "pointer",
+                  border: "1px solid rgba(0,0,0,0.1)",
+                  background: active ? "#1c1c1e" : "rgba(0,0,0,0.04)",
+                  color: active ? "#fff" : "#777",
+                  transition: "all 0.15s",
+                  boxShadow: active ? "0 2px 8px rgba(0,0,0,0.18)" : "none",
                 }}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+                  {r === "ALL" ? "All Repos" : r.split("/")[1]}
+                  <span style={{
+                    fontSize: 10, fontWeight: 700,
+                    background: active ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)",
+                    color: active ? "#fff" : "#aaa",
+                    padding: "1px 6px", borderRadius: 99,
+                  }}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Clear button */}
+          {repoAnalyses.length > 0 && (
+            <button
+              onClick={() => handleClearRepo(selectedRepo)}
+              title={selectedRepo === "ALL" ? "Clear all analyses" : `Clear all analyses for ${selectedRepo}`}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                fontSize: 12, fontWeight: 500,
+                padding: "6px 14px", borderRadius: 99, cursor: "pointer",
+                border: "1px solid rgba(229,62,62,0.2)",
+                background: "rgba(229,62,62,0.05)",
+                color: "#e53e3e",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(229,62,62,0.1)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(229,62,62,0.05)"; }}
+            >
+              🗑 {selectedRepo === "ALL" ? "Clear All" : `Clear ${selectedRepo.split("/")[1]}`}
+            </button>
+          )}
         </div>
       )}
 
@@ -584,7 +650,7 @@ export default function Home() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {filtered.map(a => <PRCard key={a.id} analysis={a} onClick={() => setSelected(a)} />)}
+            {filtered.map(a => <PRCard key={a.id} analysis={a} onClick={() => setSelected(a)} onDelete={e => handleDeleteOne(e, a.id)} />)}
           </div>
         )}
       </div>

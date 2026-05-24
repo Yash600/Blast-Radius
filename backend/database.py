@@ -80,6 +80,27 @@ def get_all_analyses(repo_filter: str = None) -> list:
         result.append(d)
     return result
 
+def delete_analysis(analysis_id: int) -> bool:
+    conn = sqlite3.connect(DB_PATH)
+    cur  = conn.execute("DELETE FROM analyses WHERE id = ?", (analysis_id,))
+    conn.commit()
+    conn.close()
+    return cur.rowcount > 0
+
+def delete_repo_analyses(repo_name: str) -> int:
+    conn = sqlite3.connect(DB_PATH)
+    cur  = conn.execute("DELETE FROM analyses WHERE repo_name = ?", (repo_name,))
+    conn.commit()
+    conn.close()
+    return cur.rowcount
+
+def delete_all_analyses() -> int:
+    conn = sqlite3.connect(DB_PATH)
+    cur  = conn.execute("DELETE FROM analyses")
+    conn.commit()
+    conn.close()
+    return cur.rowcount
+
 def get_analysis_by_pr(repo_name: str, pr_number: int) -> dict | None:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row

@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from database import init_db, save_analysis, get_all_analyses, get_analysis_by_pr
+from database import init_db, save_analysis, get_all_analyses, get_analysis_by_pr, delete_analysis, delete_repo_analyses, delete_all_analyses
 
 load_dotenv()
 
@@ -228,6 +228,29 @@ async def get_memory(repo_owner: str, repo_name: str):
             with open(fpath) as f:
                 entries.append({"file": fname, "content": f.read()})
     return entries
+
+# ── Delete endpoints ──────────────────────────────────────────────────────────
+
+@app.delete("/api/analyses/{analysis_id}")
+async def delete_single_analysis(analysis_id: int):
+    """Delete a single analysis by ID."""
+    deleted = delete_analysis(analysis_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return {"status": "deleted", "id": analysis_id}
+
+@app.delete("/api/analyses/repo/{repo_owner}/{repo_name}")
+async def clear_repo_analyses(repo_owner: str, repo_name: str):
+    """Delete all analyses for a specific repo."""
+    full_repo = f"{repo_owner}/{repo_name}"
+    count     = delete_repo_analyses(full_repo)
+    return {"status": "cleared", "repo": full_repo, "deleted": count}
+
+@app.delete("/api/analyses")
+async def clear_all():
+    """Delete every analysis in the database."""
+    count = delete_all_analyses()
+    return {"status": "cleared", "deleted": count}
 
 # ── Manual scan endpoint ───────────────────────────────────────────────────────
 
