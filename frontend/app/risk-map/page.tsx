@@ -5,9 +5,9 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 type RiskEntry = { file: string; risk_score: number };
 
 function riskMeta(ratio: number) {
-  if (ratio > 0.66) return { color: "#e11d48", bar: "linear-gradient(90deg,#e11d48,#fb7185)", glow: "rgba(225,29,72,0.25)",  label: "HIGH",   bg: "rgba(225,29,72,0.07)",  border: "rgba(225,29,72,0.2)"  };
-  if (ratio > 0.33) return { color: "#d97706", bar: "linear-gradient(90deg,#d97706,#fbbf24)", glow: "rgba(217,119,6,0.25)",  label: "MEDIUM", bg: "rgba(217,119,6,0.07)",  border: "rgba(217,119,6,0.2)"  };
-  return               { color: "#059669", bar: "linear-gradient(90deg,#059669,#34d399)", glow: "rgba(5,150,105,0.22)",  label: "LOW",    bg: "rgba(5,150,105,0.07)",  border: "rgba(5,150,105,0.2)"  };
+  if (ratio > 0.66) return { color: "#e53e3e", fill: "#1c1c1e",  label: "HIGH",   bg: "rgba(229,62,62,0.07)",   border: "rgba(229,62,62,0.18)"  };
+  if (ratio > 0.33) return { color: "#c49a30", fill: "#e8b84b",  label: "MEDIUM", bg: "rgba(196,154,48,0.09)",  border: "rgba(196,154,48,0.22)" };
+  return               { color: "#38a169", fill: "#c8c3b8",  label: "LOW",    bg: "rgba(56,161,105,0.07)",  border: "rgba(56,161,105,0.18)" };
 }
 
 export default function RiskMap() {
@@ -36,74 +36,97 @@ export default function RiskMap() {
       .catch(() => setLoading(false));
   }, [repo]);
 
-  const max = data[0]?.risk_score || 1;
-  const highCount   = data.filter(e => e.risk_score / max > 0.66).length;
-  const mediumCount = data.filter(e => { const r = e.risk_score / max; return r > 0.33 && r <= 0.66; }).length;
-  const lowCount    = data.filter(e => e.risk_score / max <= 0.33).length;
+  const max          = data[0]?.risk_score || 1;
+  const highCount    = data.filter(e => e.risk_score / max > 0.66).length;
+  const mediumCount  = data.filter(e => { const r = e.risk_score / max; return r > 0.33 && r <= 0.66; }).length;
+  const lowCount     = data.filter(e => e.risk_score / max <= 0.33).length;
 
   return (
-    <div style={{ maxWidth: 780, margin: "0 auto", padding: "40px 24px" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 36, gap: 20, flexWrap: "wrap" }}>
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: "36px 28px" }}>
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28, gap: 20, flexWrap: "wrap" }}>
         <div>
-          <h1 style={{ fontWeight: 800, fontSize: 26, letterSpacing: "-0.6px", marginBottom: 6 }} className="gradient-text">Codebase Risk Map</h1>
-          <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>Files ranked by cumulative blast radius score across all analyzed PRs.</p>
+          <h1 style={{ fontWeight: 900, fontSize: 28, color: "#1a1a1a", letterSpacing: "-0.8px", marginBottom: 4 }}>Codebase Risk Map</h1>
+          <p style={{ color: "#a0a0a0", fontSize: 13 }}>Files ranked by cumulative blast radius score across all analyzed PRs.</p>
         </div>
-        <select value={repo} onChange={e => setRepo(e.target.value)} style={{ padding: "9px 14px", fontSize: 13, borderRadius: 10, minWidth: 190 }}>
+        <select value={repo} onChange={e => setRepo(e.target.value)} style={{ padding: "9px 14px", fontSize: 13, borderRadius: 99, minWidth: 190, cursor: "pointer" }}>
           {repos.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
       </div>
 
+      {/* Stat strip */}
       {data.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 28 }}>
+        <div style={{ background: "#fff", borderRadius: 18, border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 8px rgba(0,0,0,0.06)", padding: "18px 24px", marginBottom: 22, display: "flex", alignItems: "center", gap: 28 }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
+            {[
+              { label: "High Risk",   count: highCount,   pct: Math.round((highCount   / data.length) * 100), fill: "#1c1c1e" },
+              { label: "Medium Risk", count: mediumCount, pct: Math.round((mediumCount / data.length) * 100), fill: "#e8b84b" },
+              { label: "Low Risk",    count: lowCount,    pct: Math.round((lowCount    / data.length) * 100), fill: "#c8c3b8" },
+            ].map(b => (
+              <div key={b.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 11, color: "#aaa", fontWeight: 500, width: 72, flexShrink: 0 }}>{b.label}</span>
+                <div style={{ flex: 1, height: 7, background: "rgba(0,0,0,0.06)", borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${b.pct || 0}%`, background: b.fill, borderRadius: 99, minWidth: b.pct > 0 ? 4 : 0, transition: "width 0.6s ease" }} />
+                </div>
+                <span style={{ fontSize: 11, color: "#ccc", fontWeight: 600, width: 28, textAlign: "right" }}>{b.pct}%</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ width: 1, height: 56, background: "rgba(0,0,0,0.07)", flexShrink: 0 }} />
           {[
-            { label: "High Risk Files",   value: highCount,   cls: "danger", color: "#e11d48" },
-            { label: "Medium Risk Files", value: mediumCount, cls: "medium", color: "#d97706" },
-            { label: "Low Risk Files",    value: lowCount,    cls: "safe",   color: "#059669" },
+            { value: highCount,   label: "High"   },
+            { value: mediumCount, label: "Medium" },
+            { value: lowCount,    label: "Safe"   },
           ].map(s => (
-            <div key={s.label} className={`stat-card ${s.cls}`} style={{ position: "relative" }}>
-              <p style={{ color: s.color, fontSize: 28, fontWeight: 800, marginBottom: 4, letterSpacing: "-0.5px", position: "relative", zIndex: 1 }}>{s.value}</p>
-              <p style={{ color: "var(--text-secondary)", fontSize: 11, fontWeight: 500, position: "relative", zIndex: 1 }}>{s.label}</p>
+            <div key={s.label} style={{ textAlign: "center", flexShrink: 0, minWidth: 44 }}>
+              <p style={{ fontSize: 28, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-1px", lineHeight: 1 }}>{s.value}</p>
+              <p style={{ fontSize: 10, color: "#aaa", fontWeight: 500, marginTop: 4 }}>{s.label}</p>
             </div>
           ))}
         </div>
       )}
 
+      {/* List */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: "80px 0", color: "var(--text-muted)" }}>
+        <div style={{ textAlign: "center", padding: "80px 0", color: "#ccc" }}>
           <div style={{ fontSize: 30, marginBottom: 14 }}>🗺️</div>
           <p style={{ fontSize: 14 }}>Building risk map…</p>
         </div>
       ) : data.length === 0 ? (
         <div style={{ textAlign: "center", padding: "80px 0" }}>
-          <div style={{ fontSize: 44, marginBottom: 16 }}>🗺️</div>
-          <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 16, marginBottom: 6 }}>No risk data yet.</p>
-          <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>Risk data accumulates as PRs are analyzed for this repo.</p>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🗺️</div>
+          <p style={{ color: "#1a1a1a", fontWeight: 700, fontSize: 16, marginBottom: 6 }}>No risk data yet.</p>
+          <p style={{ color: "#aaa", fontSize: 13 }}>Risk data accumulates as PRs are analyzed for this repo.</p>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {data.map((entry, i) => {
             const ratio = entry.risk_score / max;
             const meta  = riskMeta(ratio);
             const pct   = Math.round(ratio * 100);
+            const isTop = i < 3;
             return (
-              <div key={entry.file} className="card fade-up" style={{ padding: "18px 20px", borderLeft: `3px solid ${meta.color}` }}>
-                <div style={{ position: "absolute", inset: 0, borderRadius: 16, background: `linear-gradient(90deg, ${meta.bg} 0%, transparent 45%)`, pointerEvents: "none" }} />
-                <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, gap: 12 }}>
+              <div key={entry.file} className="fade-up" style={{ background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 4px rgba(0,0,0,0.05)", padding: "16px 18px", transition: "all 0.15s" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 16px rgba(0,0,0,0.1)"; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 4px rgba(0,0,0,0.05)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0 }}>
-                    <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, background: i < 3 ? meta.bg : "rgba(0,0,0,0.03)", border: `1px solid ${i < 3 ? meta.border : "rgba(124,58,237,0.1)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: i < 3 ? meta.color : "var(--text-muted)" }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, background: isTop ? meta.bg : "rgba(0,0,0,0.04)", border: `1px solid ${isTop ? meta.border : "rgba(0,0,0,0.08)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: isTop ? meta.color : "#aaa" }}>
                       {i + 1}
                     </div>
-                    <span style={{ color: "var(--text-primary)", fontFamily: "monospace", fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.file}</span>
+                    <span style={{ color: "#1a1a1a", fontFamily: "monospace", fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.file}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: meta.bg, color: meta.color, border: `1px solid ${meta.border}` }}>{meta.label}</span>
-                    <span style={{ color: meta.color, fontWeight: 800, fontSize: 14, minWidth: 24, textAlign: "right" }}>{entry.risk_score}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 99, background: meta.bg, color: meta.color, border: `1px solid ${meta.border}`, letterSpacing: "0.4px" }}>{meta.label}</span>
+                    <span style={{ color: "#1a1a1a", fontWeight: 800, fontSize: 14 }}>{entry.risk_score}</span>
                   </div>
                 </div>
-                <div style={{ position: "relative", height: 5, background: "rgba(0,0,0,0.07)", borderRadius: 4, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${pct}%`, borderRadius: 4, background: meta.bar, boxShadow: `0 0 8px ${meta.glow}`, transition: "width 0.7s cubic-bezier(0.4,0,0.2,1)" }} />
+                <div style={{ height: 6, background: "rgba(0,0,0,0.06)", borderRadius: 99, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, borderRadius: 99, background: meta.fill, transition: "width 0.7s cubic-bezier(0.4,0,0.2,1)" }} />
                 </div>
-                <p style={{ color: "var(--text-muted)", fontSize: 10, marginTop: 6, textAlign: "right" }}>{pct}% of maximum risk</p>
+                <p style={{ color: "#ccc", fontSize: 10, marginTop: 5, textAlign: "right" }}>{pct}% of maximum risk</p>
               </div>
             );
           })}
