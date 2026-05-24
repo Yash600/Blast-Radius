@@ -2,6 +2,9 @@
 import { useEffect, useState } from "react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const GITHUB_APP_URL =
+  process.env.NEXT_PUBLIC_GITHUB_APP_URL ||
+  "https://github.com/apps/blast-radius-ai/installations/new";
 
 type Analysis = {
   id: number;
@@ -309,15 +312,93 @@ export default function Home() {
           <p style={{ fontSize: 14 }}>Loading analyses…</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "80px 0" }}>
-          <div style={{ fontSize: 44, marginBottom: 16 }}>💥</div>
-          <p style={{ color: "var(--text-primary)", fontWeight: 700, fontSize: 16, marginBottom: 6 }}>No analyses yet.</p>
-          <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>
-            Open a PR on an installed repo, or{" "}
-            <button onClick={() => setShowScan(true)} style={{ background: "none", border: "none", color: "#7c3aed", cursor: "pointer", fontSize: 13, textDecoration: "underline" }}>
-              scan an existing one
-            </button>.
-          </p>
+        <div style={{ textAlign: "center", padding: "60px 0" }}>
+          {/* Install CTA card */}
+          <div style={{
+            maxWidth: 480,
+            margin: "0 auto 28px",
+            background: "linear-gradient(135deg, rgba(124,58,237,0.06) 0%, rgba(8,145,178,0.04) 100%)",
+            border: "1px solid rgba(124,58,237,0.2)",
+            borderRadius: 20,
+            padding: "36px 40px",
+            position: "relative",
+            overflow: "hidden",
+          }}>
+            {/* Glow orb */}
+            <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,58,237,0.15) 0%, transparent 70%)", pointerEvents: "none" }} />
+
+            <div style={{ fontSize: 44, marginBottom: 16 }}>💥</div>
+            <h2 style={{ color: "var(--text-primary)", fontWeight: 800, fontSize: 18, marginBottom: 8, letterSpacing: "-0.4px" }}>
+              No analyses yet
+            </h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.7, marginBottom: 28 }}>
+              Install the GitHub App on your repo — every pull request gets automatically analyzed for blast radius. Zero config required.
+            </p>
+
+            {/* Install button */}
+            <a
+              href={GITHUB_APP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 9,
+                background: "linear-gradient(135deg, #1e1743 0%, #2d1f6e 100%)",
+                color: "#ffffff",
+                fontSize: 14,
+                fontWeight: 700,
+                padding: "12px 24px",
+                borderRadius: 11,
+                textDecoration: "none",
+                border: "1px solid rgba(124,58,237,0.35)",
+                boxShadow: "0 4px 18px rgba(30,23,67,0.3)",
+                marginBottom: 18,
+                letterSpacing: "-0.1px",
+              }}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+              </svg>
+              Install on GitHub — Free
+            </a>
+
+            {/* Divider */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0 18px" }}>
+              <div style={{ flex: 1, height: 1, background: "rgba(124,58,237,0.12)" }} />
+              <span style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 500 }}>or</span>
+              <div style={{ flex: 1, height: 1, background: "rgba(124,58,237,0.12)" }} />
+            </div>
+
+            {/* Scan existing */}
+            <button
+              onClick={() => setShowScan(true)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 7,
+                background: "rgba(124,58,237,0.08)",
+                border: "1px solid rgba(124,58,237,0.22)",
+                color: "#7c3aed", fontSize: 13, fontWeight: 600,
+                padding: "10px 20px", borderRadius: 10, cursor: "pointer",
+              }}
+            >
+              🔎 Scan an existing repo
+            </button>
+          </div>
+
+          {/* How it works steps */}
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            {[
+              { step: "1", text: "Install the GitHub App" },
+              { step: "2", text: "Open any pull request"  },
+              { step: "3", text: "See your blast radius"  },
+            ].map(({ step, text }) => (
+              <div key={step} style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)", fontSize: 12 }}>
+                <span style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#7c3aed" }}>{step}</span>
+                {text}
+                {step !== "3" && <span style={{ color: "rgba(124,58,237,0.3)", marginLeft: 4 }}>→</span>}
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
