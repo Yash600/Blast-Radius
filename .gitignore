@@ -1,0 +1,33 @@
+# ── Secrets ──────────────────────────────────────────────
+*.pem
+.env
+.env.local
+.env.production
+
+# ── Python ───────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# ── Database ─────────────────────────────────────────────
+*.db
+*.sqlite3
+
+# ── Node / Next.js ───────────────────────────────────────
+node_modules/
+.next/
+out/
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
+# ── Git agent memory (local only) ────────────────────────
+backend/.gitagent/memory/
+
+# ── OS ───────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

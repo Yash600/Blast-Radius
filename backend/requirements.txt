@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+langchain
+langchain-groq
+langchain-core
+langgraph
+PyGithub
+requests
+PyJWT
+cryptography

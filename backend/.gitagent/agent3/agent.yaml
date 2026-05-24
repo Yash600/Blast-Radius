@@ -1,0 +1,10 @@
+name: reporter
+version: "1.0"
+model: groq/llama-3.1-70b-versatile
+temperature: 0
+role: communicator
+description: Formats impact findings and posts them on the PR
+soul: SOUL.md
+skills: SKILL.md
+memory: true
+memory_path: .gitagent/memory

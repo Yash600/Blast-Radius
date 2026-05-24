@@ -1,0 +1,9 @@
+name: diff-reader
+version: "1.0"
+model: groq/llama-3.1-70b-versatile
+temperature: 0
+role: analyst
+description: Reads PR diffs and identifies semantic changes
+soul: SOUL.md
+skills: SKILL.md
+memory: false

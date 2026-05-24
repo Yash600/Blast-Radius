@@ -1,0 +1,10 @@
+name: impact-scanner
+version: "1.0"
+model: groq/llama-3.1-70b-versatile
+temperature: 0
+role: detective
+description: Finds all codebase touchpoints impacted by a change
+soul: SOUL.md
+skills: SKILL.md
+memory: true
+memory_path: .gitagent/memory
