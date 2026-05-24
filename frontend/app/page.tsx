@@ -391,12 +391,13 @@ function ScanModal({ onClose, onScanStarted }: { onClose: () => void; onScanStar
 
 /* ── Main page ── */
 export default function Home() {
-  const [analyses,   setAnalyses]   = useState<Analysis[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [selected,   setSelected]   = useState<Analysis | null>(null);
-  const [filter,     setFilter]     = useState("ALL");
-  const [showScan,   setShowScan]   = useState(false);
-  const [scanBanner, setScanBanner] = useState(false);
+  const [analyses,     setAnalyses]     = useState<Analysis[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [selected,     setSelected]     = useState<Analysis | null>(null);
+  const [filter,       setFilter]       = useState("ALL");
+  const [selectedRepo, setSelectedRepo] = useState("ALL");
+  const [showScan,     setShowScan]     = useState(false);
+  const [scanBanner,   setScanBanner]   = useState(false);
 
   function fetchAnalyses() {
     fetch(`${API}/api/analyses`)
@@ -411,11 +412,22 @@ export default function Home() {
     return () => clearInterval(id);
   }, []);
 
-  const filtered = filter === "ALL" ? analyses : analyses.filter(a => a.severity === filter);
-  const high     = analyses.filter(a => a.severity === "HIGH").length;
-  const medium   = analyses.filter(a => a.severity === "MEDIUM").length;
-  const low      = analyses.filter(a => a.severity === "LOW").length;
-  const impacts  = analyses.reduce((s, a) => s + (a.impact_count || 0), 0);
+  // All unique repos across all analyses
+  const repos = [...new Set(analyses.map(a => a.repo_name))];
+
+  // Analyses scoped to the selected repo (or all)
+  const repoAnalyses = selectedRepo === "ALL"
+    ? analyses
+    : analyses.filter(a => a.repo_name === selectedRepo);
+
+  const filtered = filter === "ALL"
+    ? repoAnalyses
+    : repoAnalyses.filter(a => a.severity === filter);
+
+  const high    = repoAnalyses.filter(a => a.severity === "HIGH").length;
+  const medium  = repoAnalyses.filter(a => a.severity === "MEDIUM").length;
+  const low     = repoAnalyses.filter(a => a.severity === "LOW").length;
+  const impacts = repoAnalyses.reduce((s, a) => s + (a.impact_count || 0), 0);
 
   return (
     <div style={{ maxWidth: 1120, margin: "0 auto", padding: "36px 28px" }}>
@@ -431,14 +443,47 @@ export default function Home() {
         </button>
       </div>
 
+      {/* Repo tabs — only show when multiple repos exist */}
+      {repos.length > 1 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11, color: "#aaa", fontWeight: 600, marginRight: 4 }}>Repo</span>
+          {["ALL", ...repos].map(r => {
+            const active = selectedRepo === r;
+            const count  = r === "ALL" ? analyses.length : analyses.filter(a => a.repo_name === r).length;
+            return (
+              <button key={r} onClick={() => { setSelectedRepo(r); setFilter("ALL"); }} style={{
+                display: "flex", alignItems: "center", gap: 6,
+                fontSize: 12, fontWeight: active ? 700 : 500,
+                padding: "6px 14px", borderRadius: 99, cursor: "pointer",
+                border: "1px solid rgba(0,0,0,0.1)",
+                background: active ? "#1c1c1e" : "rgba(0,0,0,0.04)",
+                color: active ? "#fff" : "#777",
+                transition: "all 0.15s",
+                boxShadow: active ? "0 2px 8px rgba(0,0,0,0.18)" : "none",
+              }}>
+                {r === "ALL" ? "All Repos" : r.split("/")[1]}
+                <span style={{
+                  fontSize: 10, fontWeight: 700,
+                  background: active ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)",
+                  color: active ? "#fff" : "#aaa",
+                  padding: "1px 6px", borderRadius: 99,
+                }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Stats strip */}
       <div style={{ background: "#fff", borderRadius: 18, border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 8px rgba(0,0,0,0.06)", padding: "18px 24px", marginBottom: 22, display: "flex", alignItems: "center", gap: 28 }}>
         {/* Progress bars */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
           {[
-            { label: "High Risk",   pct: analyses.length ? Math.round((high   / analyses.length) * 100) : 0, fill: "#1c1c1e" },
-            { label: "Medium Risk", pct: analyses.length ? Math.round((medium / analyses.length) * 100) : 0, fill: "#e8b84b" },
-            { label: "Safe",        pct: analyses.length ? Math.round((low    / analyses.length) * 100) : 0, fill: "#c8c3b8" },
+            { label: "High Risk",   pct: repoAnalyses.length ? Math.round((high   / repoAnalyses.length) * 100) : 0, fill: "#1c1c1e" },
+            { label: "Medium Risk", pct: repoAnalyses.length ? Math.round((medium / repoAnalyses.length) * 100) : 0, fill: "#e8b84b" },
+            { label: "Safe",        pct: repoAnalyses.length ? Math.round((low    / repoAnalyses.length) * 100) : 0, fill: "#c8c3b8" },
           ].map(b => (
             <div key={b.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 11, color: "#aaa", fontWeight: 500, width: 72, flexShrink: 0 }}>{b.label}</span>
@@ -455,9 +500,9 @@ export default function Home() {
 
         {/* Big numbers */}
         {[
-          { value: analyses.length, label: "Analyzed" },
-          { value: impacts,         label: "Impacts"  },
-          { value: high,            label: "Critical" },
+          { value: repoAnalyses.length, label: "Analyzed" },
+          { value: impacts,             label: "Impacts"  },
+          { value: high,                label: "Critical" },
         ].map(s => (
           <div key={s.label} style={{ textAlign: "center", flexShrink: 0, minWidth: 52 }}>
             <p style={{ fontSize: 30, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-1.5px", lineHeight: 1 }}>{s.value}</p>
@@ -475,11 +520,11 @@ export default function Home() {
       )}
 
       {/* Bento grid */}
-      {analyses.length > 0 && (
+      {repoAnalyses.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 28 }}>
-          <FeaturedCard analyses={analyses} onOpen={setSelected} />
-          <SeverityChart analyses={analyses} />
-          <TopFilesCard analyses={analyses} />
+          <FeaturedCard analyses={repoAnalyses} onOpen={setSelected} />
+          <SeverityChart analyses={repoAnalyses} />
+          <TopFilesCard analyses={repoAnalyses} />
         </div>
       )}
 
