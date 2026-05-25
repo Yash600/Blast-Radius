@@ -4,7 +4,7 @@
 
 Blast Radius AI is a multi-agent GitHub App that automatically analyzes every pull request and commit to map the full blast radius of any code change — which files will break, which functions will degrade, and which areas are safe — before a single line reaches production.
 
-
+YOUTUBE LINK: https://youtu.be/3JxaJCqRF9o?si=QCyJq2kiULnH_a66
 ---
 
 ## The Problem
